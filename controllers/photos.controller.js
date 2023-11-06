@@ -7,8 +7,11 @@ exports.add = async (req, res) => {
   try {
     const { title, author, email } = req.fields;
     const file = req.files.file;
+    const allowedExt = []
+    const ext = file.path.split('.').slice(-1)[0]
+    const isExtAllowed = allowedExt.includes(ext)
 
-    if(title && author && email && file) { // if fields are not empty...
+    if(title && author && email && file && isExtAllowed) { // if fields are not empty...
 
       const fileName = file.path.split('/').slice(-1)[0]; // cut only filename from full path, e.g. C:/test/abc.jpg -> abc.jpg
       const newPhoto = new Photo({ title, author, email, src: fileName, votes: 0 });
