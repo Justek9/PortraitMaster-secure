@@ -56,34 +56,35 @@ exports.vote = async (req, res) => {
 	try {
 		const photoId = req.params.id
 		const userIP = requestIp.getClientIp(req)
-		const voter = await Voter.findOne({ user: userIP })
+		let voter = await Voter.findOne({ user: userIP })
 		const photoToUpdate = await Photo.findOne({ _id: photoId })
+
+		const vote = () => {
+			photoToUpdate.votes++
+			photoToUpdate.save()
+			res.send({ message: 'OK' })
+		}
 
 		if (!photoToUpdate) {
 			res.status(404).json({ message: 'Photo not found' })
+		}
+
+		// check if voter is already in db
+		// if not create new voter and vot
+		if (!voter) {
+			voter = new Voter({ user: userIP, votes: photoToUpdate._id })
+			await voter.save() // ...save new voter in DB}
+			vote()
+			return
+		}
+
+		// if voter exists check if voted for such photo, if not then allow to vote
+		if (voter.votes.includes(photoToUpdate._id)) {
+			res.status(404).json({ message: 'You have already voted for that photo' })
 		} else {
-			// check if such voter is already in db
-
-			// if not create new voter and vote:
-			if (!voter) {
-				const newVoter = new Voter({ user: userIP, votes: photoToUpdate._id })
-				await newVoter.save() // ...save new voter in DB}
-				photoToUpdate.votes++
-				photoToUpdate.save()
-				res.send({ message: 'OK' })
-
-				// if voter exists check if voted for such photo, if not then allow to vote
-			} else {
-				if (voter.votes.includes(photoToUpdate._id)) {
-					res.status(404).json({ message: 'You have already voted for that photo' })
-				} else {
-					voter.votes.push(photoToUpdate._id)
-					voter.save()
-					photoToUpdate.votes++
-					photoToUpdate.save()
-					res.send({ message: 'OK' })
-				}
-			}
+			voter.votes.push(photoToUpdate._id)
+			voter.save()
+			vote()
 		}
 	} catch (err) {
 		res.status(500).json(err)
